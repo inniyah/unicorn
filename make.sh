@@ -26,7 +26,9 @@ OPTIONS:
 EOF
 }
 
+# Default values
 MAKE_JOBS="${MAKE_JOBS:-0}"
+DESTDIR="${DESTDIR:-}"
 
 MAKE_JOBS=$((MAKE_JOBS+0))
 [ ${MAKE_JOBS} -lt 1 ] && \
@@ -60,14 +62,18 @@ install() {
   # Mac OSX needs to find the right directory for pkgconfig
   if [ "$UNAME" = Darwin ]; then
     # we are going to install into /usr/local, so remove old installs under /usr
-    rm -rf /usr/lib/libunicorn*
-    rm -rf /usr/include/unicorn
-    # install into /usr/local
+    rm -rf "${DESTDIR}/usr/lib"/libunicorn*
+    rm -rf "${DESTDIR}/usr/include"/unicorn
+    # install into /usr/local by default
     PREFIX=${PREFIX:-/usr/local}
-    ${MAKE} install
+    ${MAKE} install DESTDIR="${DESTDIR}"
   else  # not OSX
-    test -d /usr/lib64 && LIBDIRARCH=lib64
-    ${MAKE} install
+    if [ "$UNAME" = Linux ]; then
+        ${MAKE} install DESTDIR="${DESTDIR}" LIBDIRARCH="lib/$(gcc --print-multiarch)"
+    else
+        test -d /usr/lib64 && LIBDIRARCH=lib64
+        ${MAKE} install DESTDIR="${DESTDIR}"
+    fi
   fi
 }
 
@@ -77,10 +83,14 @@ uninstall() {
     # find the directory automatically, so we can support both Macport & Brew
     PKGCFGDIR="$(pkg-config --variable pc_path pkg-config | cut -d ':' -f 1)"
     PREFIX=${PREFIX:-/usr/local}
-    ${MAKE} uninstall
+    ${MAKE} uninstall DESTDIR="${DESTDIR}"
   else  # not OSX
-    test -d /usr/lib64 && LIBDIRARCH=lib64
-    ${MAKE} uninstall
+    if [ "$UNAME" = Linux ]; then
+        ${MAKE} uninstall DESTDIR="${DESTDIR}" LIBDIRARCH="lib/$(gcc --print-multiarch)"
+    else
+        test -d /usr/lib64 && LIBDIRARCH=lib64
+        ${MAKE} uninstall DESTDIR="${DESTDIR}"
+    fi
   fi
 }
 

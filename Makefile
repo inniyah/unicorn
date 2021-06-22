@@ -414,10 +414,10 @@ header:
 
 
 uninstall:
-	rm -rf $(INCDIR)/$(LIBNAME)
-	rm -f $(LIBDIR)/lib$(LIBNAME).*
-	rm -f $(BINDIR)/cyg$(LIBNAME).*
-	rm -f $(PKGCFGDIR)/$(LIBNAME).pc
+	rm -rf $(DESTDIR)$(INCDIR)/$(LIBNAME)
+	rm -f $(DESTDIR)$(LIBDIR)/lib$(LIBNAME).*
+	rm -f $(DESTDIR)$(BINDIR)/cyg$(LIBNAME).*
+	rm -f $(DESTDIR)$(PKGCFGDIR)/$(LIBNAME).pc
 
 
 clean:
