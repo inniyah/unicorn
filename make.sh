@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+
+set -euxo pipefail
 
 # Unicorn Engine
 # By Nguyen Anh Quynh <aquynh@gmail.com>, 2015
@@ -23,6 +25,8 @@ OPTIONS:
     msvc_update_genfiles    Generate files for MSVC projects
 EOF
 }
+
+MAKE_JOBS="${MAKE_JOBS:-0}"
 
 MAKE_JOBS=$((MAKE_JOBS+0))
 [ ${MAKE_JOBS} -lt 1 ] && \
@@ -119,7 +123,7 @@ fi
 
 export CC INSTALL_BIN PREFIX PKGCFGDIR LIBDIRARCH LIBARCHS CFLAGS LDFLAGS
 
-case "$1" in
+case "${1:-}" in
   "" ) ${MAKE};;
   "asan" ) asan;;
   "install" ) install;;
