@@ -24,7 +24,12 @@ set(UNICORN_VERSION_PATCH 3)
 option(BUILD_SHARED_LIBS "Build shared instead of static library" ON)
 option(UNICORN_INSTALL "Install unicorn" ON)
 option(UNICORN_BUILD_SAMPLES "Build samples" ON)
-set(UNICORN_ARCH "x86 arm aarch64 m68k mips sparc" CACHE STRING "Supported architectures")
+set(UNICORN_ARCH "x86 arm aarch64 m68k mips sparc ppc" CACHE STRING "Supported architectures")
+
+if(NOT UNICORN_ARCH)
+    # build all architectures
+    set(UNICORN_ARCH "x86 arm aarch64 m68k mips sparc ppc")
+endif()
 
 # Deprecated option (CMake has this feature built-in)
 if(UNICORN_BUILD_SHARED)
@@ -162,6 +167,9 @@ else()
     if (UNICORN_HAS_SPARC)
         set (EXTRA_CFLAGS "${EXTRA_CFLAGS}-DUNICORN_HAS_SPARC ")
     endif()
+    if (UNICORN_HAS_PPC)
+        set (EXTRA_CFLAGS "${EXTRA_CFLAGS}-DUNICORN_HAS_PPC ")
+    endif()
     set (EXTRA_CFLAGS "${EXTRA_CFLAGS}-fPIC -fvisibility=hidden")
 
     set(TARGET_LIST "--target-list=")
@@ -182,6 +190,9 @@ else()
     endif()
     if (UNICORN_HAS_SPARC)
         set (TARGET_LIST "${TARGET_LIST}sparc-softmmu, sparc64-softmmu, ")
+    endif()
+    if (UNICORN_HAS_PPC)
+        set (TARGET_LIST "${TARGET_LIST}ppc-softmmu, ")
     endif()
     set (TARGET_LIST "${TARGET_LIST} ")
 
@@ -253,6 +264,12 @@ else()
         execute_process(COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/qemu/scripts/create_config
             INPUT_FILE ${CMAKE_BINARY_DIR}/sparc64-softmmu/config-target.mak
             OUTPUT_FILE ${CMAKE_BINARY_DIR}/sparc64-softmmu/config-target.h
+        )
+    endif()
+    if (UNICORN_HAS_PPC)
+        execute_process(COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/qemu/scripts/create_config
+            INPUT_FILE ${CMAKE_BINARY_DIR}/ppc-softmmu/config-target.mak
+            OUTPUT_FILE ${CMAKE_BINARY_DIR}/ppc-softmmu/config-target.h
         )
     endif()
     add_compile_options(
@@ -778,6 +795,59 @@ else()
 endif()
 endif()
 
+if (UNICORN_HAS_PPC)
+add_library(ppc-softmmu
+    qemu/cpu-exec.c
+    qemu/cpus.c
+    qemu/cputlb.c
+    qemu/exec.c
+    qemu/fpu/softfloat.c
+    qemu/hw/ppc/ppc.c
+    qemu/hw/ppc/ppc_booke.c
+    qemu/hw/ppc/e500plat.c
+    qemu/libdecnumber/decContext.c
+    qemu/libdecnumber/decNumber.c
+    qemu/libdecnumber/dpd/decimal128.c
+    qemu/libdecnumber/dpd/decimal32.c
+    qemu/libdecnumber/dpd/decimal64.c
+    qemu/ioport.c
+    qemu/memory.c
+    qemu/memory_mapping.c
+    qemu/target-ppc/cpu-models.c
+    qemu/target-ppc/mmu_helper.c
+    qemu/target-ppc/mmu-hash32.c
+    qemu/target-ppc/dfp_helper.c
+    qemu/target-ppc/excp_helper.c
+    qemu/target-ppc/fpu_helper.c
+    qemu/target-ppc/int_helper.c
+    qemu/target-ppc/timebase_helper.c
+    qemu/target-ppc/misc_helper.c
+    qemu/target-ppc/mem_helper.c
+    qemu/target-ppc/translate.c
+    qemu/target-ppc/unicorn.c
+    qemu/tcg/optimize.c
+    qemu/tcg/tcg.c
+    qemu/translate-all.c
+)
+
+if(MSVC)
+    target_compile_options(ppc-softmmu PRIVATE
+        -DNEED_CPU_H
+        /FI ppc.h
+        /I${CMAKE_CURRENT_SOURCE_DIR}/msvc/unicorn/ppc-softmmu
+        /I${CMAKE_CURRENT_SOURCE_DIR}/qemu/target-ppc
+    )
+else()
+    target_compile_options(ppc-softmmu PRIVATE
+        -DNEED_CPU_H
+        -include ppc.h
+        -I${CMAKE_BINARY_DIR}/ppc-softmmu
+        -I${CMAKE_CURRENT_SOURCE_DIR}/qemu/target-ppc
+    )
+endif()
+endif()
+
+
 set(UNICORN_SRCS_COMMON
     list.c
     qemu/accel.c
@@ -877,6 +947,11 @@ if (UNICORN_HAS_SPARC)
     list(APPEND UNICORN_COMPILE_OPTIONS -DUNICORN_HAS_SPARC)
     list(APPEND UNICORN_OBJECT_LIBRARIES sparc-softmmu sparc64-softmmu)
     list(APPEND UNICORN_SAMPLE_FILE sample_sparc)
+endif()
+if (UNICORN_HAS_PPC)
+    set(UNICRON_COMPILE_OPTIONS ${UNICRON_COMPILE_OPTIONS} -DUNICORN_HAS_PPC)
+    set(UNICRON_LINK_LIBRARIES ${UNICRON_LINK_LIBRARIES} ppc-softmmu)
+    set(UNICRON_SAMPLE_FILE ${UNICRON_SAMPLE_FILE} sample_ppc)
 endif()
 
 foreach(OBJECT_LIBRARY ${UNICORN_OBJECT_LIBRARIES})
